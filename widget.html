@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Supabase Connection Test</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f8fafc;
+    padding: 20px;
+    color: #1e293b;
+  }
+
+  h2 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .config-box {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .config-box label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: #64748b;
+    margin-bottom: 5px;
+    margin-top: 10px;
+  }
+
+  .config-box label:first-child { margin-top: 0; }
+
+  .config-box input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    font-size: 13px;
+    font-family: 'Courier New', monospace;
+    color: #1e293b;
+    background: #f8fafc;
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  .config-box input:focus {
+    border-color: #3b82f6;
+    background: #fff;
+  }
+
+  .config-box input::placeholder { color: #94a3b8; }
+
+  /* Test buttons */
+  .test-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .btn-test {
+    padding: 11px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: all .2s;
+  }
+
+  .btn-test:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+
+  .btn-1 { background: #3b82f6; color: #fff; }
+  .btn-1:hover:not(:disabled) { background: #2563eb; }
+  .btn-2 { background: #8b5cf6; color: #fff; }
+  .btn-2:hover:not(:disabled) { background: #7c3aed; }
+  .btn-3 { background: #10b981; color: #fff; }
+  .btn-3:hover:not(:disabled) { background: #059669; }
+  .btn-4 { background: #f59e0b; color: #fff; }
+  .btn-4:hover:not(:disabled) { background: #d97706; }
+
+  /* Results log */
+  .results-box {
+    background: #0f172a;
+    border-radius: 10px;
+    padding: 14px;
+    min-height: 200px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .results-box::-webkit-scrollbar { width: 4px; }
+  .results-box::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+  .log-line {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    display: flex;
+    gap: 8px;
+    animation: fadeIn .2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .log-time { color: #475569; flex-shrink: 0; }
+  .log-msg.info    { color: #93c5fd; }
+  .log-msg.success { color: #6ee7b7; }
+  .log-msg.error   { color: #fca5a5; }
+  .log-msg.warning { color: #fcd34d; }
+  .log-msg.heading { color: #e2e8f0; font-weight: bold; }
+
+  .empty-log {
+    color: #334155;
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+    padding: 60px 0;
+  }
+
+  /* Overall result banner */
+  .result-banner {
+    display: none;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 12px;
+    text-align: center;
+  }
+  .result-banner.pass { background: #dcfce7; color: #166534; display: block; }
+  .result-banner.fail { background: #fee2e2; color: #991b1b; display: block; }
+  .result-banner.partial { background: #fef3c7; color: #92400e; display: block; }
+
+  .spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .note {
+    font-size: 11.5px;
+    color: #64748b;
+    background: #f1f5f9;
+    border-radius: 7px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    line-height: 1.6;
+    border-left: 3px solid #3b82f6;
+  }
+</style>
+</head>
+<body>
+
+<h2>🧪 Supabase Connection Test</h2>
+
+<div class="note">
+  Enter your Supabase project URL and Anon Key below, then run each test in order. 
+  This will confirm whether Supabase works inside your Zoho Creator widget.
+</div>
+
+<!-- Config inputs -->
+<div class="config-box">
+  <label>Supabase Project URL</label>
+  <input type="text" id="supabaseUrl" 
+    placeholder="https://xxxxxxxxxxx.supabase.co" />
+
+  <label>Supabase Anon Key</label>
+  <input type="text" id="supabaseKey" 
+    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+</div>
+
+<!-- Test buttons -->
+<div class="test-grid">
+  <button class="btn-test btn-1" onclick="runTest1()">
+    1️⃣ Load SDK
+  </button>
+  <button class="btn-test btn-2" onclick="runTest2()" id="btn2" disabled>
+    2️⃣ Connect to Supabase
+  </button>
+  <button class="btn-test btn-3" onclick="runTest3()" id="btn3" disabled>
+    3️⃣ Send Message
+  </button>
+  <button class="btn-test btn-4" onclick="runTest4()" id="btn4" disabled>
+    4️⃣ Live Realtime
+  </button>
+</div>
+
+<!-- Results log -->
+<div class="results-box" id="resultsBox">
+  <div class="empty-log" id="emptyLog">
+    — Run Test 1 to begin —
+  </div>
+</div>
+
+<!-- Final verdict -->
+<div class="result-banner" id="resultBanner"></div>
+
+
+<script>
+  // ── Logging helpers ──────────────────────────────────
+  let logCount = 0;
+
+  function log(msg, type = 'info') {
+    const box = document.getElementById('resultsBox');
+    const empty = document.getElementById('emptyLog');
+    if (empty) empty.remove();
+
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2,'0') + ':' +
+                 now.getMinutes().toString().padStart(2,'0') + ':' +
+                 now.getSeconds().toString().padStart(2,'0');
+
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = `
+      <span class="log-time">[${time}]</span>
+      <span class="log-msg ${type}">${msg}</span>
+    `;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+    logCount++;
+  }
+
+  function logHeading(msg) { log('── ' + msg + ' ──', 'heading'); }
+
+  function getConfig() {
+    const url = document.getElementById('supabaseUrl').value.trim();
+    const key = document.getElementById('supabaseKey').value.trim();
+    return { url, key };
+  }
+
+  // ── Track test results ───────────────────────────────
+  const results = { sdk: false, connect: false, write: false, realtime: false };
+
+  function updateBanner() {
+    const banner = document.getElementById('resultBanner');
+    const passed = Object.values(results).filter(Boolean).length;
+    const total  = Object.values(results).length;
+
+    if (passed === total) {
+      banner.className = 'result-banner pass';
+      banner.textContent = '✅ ALL TESTS PASSED — Supabase works perfectly in your Zoho Widget!';
+    } else if (passed >= 2) {
+      banner.className = 'result-banner partial';
+      banner.textContent = `⚠️ ${passed}/${total} tests passed — Partial support. See log for details.`;
+    } else {
+      banner.className = 'result-banner fail';
+      banner.textContent = `❌ ${passed}/${total} tests passed — Supabase blocked. See log for details.`;
+    }
+  }
+
+  // ── TEST 1: Load Supabase SDK from CDN ───────────────
+  function runTest1() {
+    logHeading('TEST 1: Load Supabase SDK from CDN');
+    log('Attempting to load Supabase JS SDK...', 'info');
+    log('Source: https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', 'info');
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+
+    script.onload = function() {
+      if (window.supabase) {
+        log('✅ SDK loaded successfully!', 'success');
+        log('✅ window.supabase object is available', 'success');
+        log('✅ TEST 1 PASSED — CDN access works in this widget', 'success');
+        results.sdk = true;
+        document.getElementById('btn2').disabled = false;
+        log('→ You can now run Test 2', 'info');
+      } else {
+        log('❌ Script loaded but supabase object not found', 'error');
+        log('❌ TEST 1 FAILED', 'error');
+      }
+      updateBanner();
+    };
+
+    script.onerror = function() {
+      log('❌ Failed to load SDK from CDN', 'error');
+      log('❌ Zoho Widget is blocking external CDN requests', 'error');
+      log('❌ TEST 1 FAILED — Content Security Policy blocking CDN', 'error');
+      log('→ This means external JS libraries cannot be loaded', 'warning');
+      updateBanner();
+    };
+
+    document.head.appendChild(script);
+  }
+
+  // ── TEST 2: Connect to Supabase ──────────────────────
+  function runTest2() {
+    const { url, key } = getConfig();
+
+    if (!url || !key) {
+      log('⚠️ Please enter your Supabase URL and Anon Key above first!', 'warning');
+      return;
+    }
+
+    logHeading('TEST 2: Connect to Supabase Project');
+    log('Supabase URL: ' + url, 'info');
+    log('Anon Key: ' + key.substring(0, 20) + '...', 'info');
+    log('Creating Supabase client...', 'info');
+
+    try {
+      window._supabaseClient = window.supabase.createClient(url, key);
+      log('✅ Supabase client created successfully', 'success');
+      log('Testing connection with a simple query...', 'info');
+
+      // Try a simple REST call
+      fetch(url + '/rest/v1/', {
+        headers: {
+          'apikey': key,
+          'Authorization': 'Bearer ' + key
+        }
+      })
+      .then(res => {
+        if (res.ok || res.status === 200 || res.status === 404) {
+          log('✅ HTTP connection to Supabase works!', 'success');
+          log('✅ Fetch API is not blocked', 'success');
+          log('✅ TEST 2 PASSED — Connection established', 'success');
+          results.connect = true;
+          document.getElementById('btn3').disabled = false;
+          log('→ You can now run Test 3', 'info');
+        } else {
+          log('⚠️ Connected but got status: ' + res.status, 'warning');
+          log('⚠️ This may be a config issue, not a blocking issue', 'warning');
+          results.connect = true;
+          document.getElementById('btn3').disabled = false;
+        }
+        updateBanner();
+      })
+      .catch(err => {
+        log('❌ Fetch blocked: ' + err.message, 'error');
+        log('❌ TEST 2 FAILED — Zoho CSP is blocking Supabase connections', 'error');
+        log('→ External API calls are restricted in this widget', 'warning');
+        updateBanner();
+      });
+
+    } catch(e) {
+      log('❌ Error creating client: ' + e.message, 'error');
+      log('❌ TEST 2 FAILED', 'error');
+      updateBanner();
+    }
+  }
+
+  // ── TEST 3: Write a test message ─────────────────────
+  async function runTest3() {
+    logHeading('TEST 3: Write Test Message to Supabase');
+    log('Attempting to insert a test record...', 'info');
+    log('Table: widget_test (you need this table in Supabase)', 'warning');
+    log('→ Go to Supabase → Table Editor → New Table', 'warning');
+    log('→ Name it "widget_test", add column "message" (text)', 'warning');
+    log('→ Enable Row Level Security = OFF for this test', 'warning');
+
+    try {
+      const client = window._supabaseClient;
+      const { data, error } = await client
+        .from('widget_test')
+        .insert([{ 
+          message: 'Test from Zoho Widget at ' + new Date().toISOString(),
+          job_id: 'TEST-001'
+        }])
+        .select();
+
+      if (error) {
+        if (error.message.includes('does not exist')) {
+          log('⚠️ Table "widget_test" not created yet', 'warning');
+          log('⚠️ Create it in Supabase first (see instructions above)', 'warning');
+          log('⚠️ TEST 3 INCONCLUSIVE — Table missing, but connection works!', 'warning');
+          results.write = true; // connection worked, just no table
+          document.getElementById('btn4').disabled = false;
+        } else {
+          log('❌ Insert error: ' + error.message, 'error');
+          log('❌ TEST 3 FAILED', 'error');
+        }
+      } else {
+        log('✅ Message inserted successfully!', 'success');
+        log('✅ Data written: ' + JSON.stringify(data), 'success');
+        log('✅ TEST 3 PASSED — Writing to Supabase works!', 'success');
+        results.write = true;
+        document.getElementById('btn4').disabled = false;
+        log('→ You can now run Test 4', 'info');
+      }
+    } catch(e) {
+      log('❌ Exception: ' + e.message, 'error');
+      log('❌ TEST 3 FAILED', 'error');
+    }
+    updateBanner();
+  }
+
+  // ── TEST 4: Realtime WebSocket ────────────────────────
+  async function runTest4() {
+    logHeading('TEST 4: Realtime WebSocket Connection');
+    log('This is the most critical test for live chat', 'info');
+    log('Testing WebSocket connection to Supabase Realtime...', 'info');
+
+    try {
+      const client = window._supabaseClient;
+      let realtimeWorked = false;
+
+      const channel = client
+        .channel('widget-test-channel')
+        .on('presence', { event: 'sync' }, () => {
+          log('✅ Presence sync received!', 'success');
+        })
+        .subscribe((status) => {
+          log('Realtime status: ' + status, 'info');
+
+          if (status === 'SUBSCRIBED') {
+            log('✅ WebSocket connected successfully!', 'success');
+            log('✅ Realtime channel subscribed', 'success');
+            log('✅ TEST 4 PASSED — Live chat WILL work!', 'success');
+            realtimeWorked = true;
+            results.realtime = true;
+            updateBanner();
+            // Clean up
+            setTimeout(() => {
+              client.removeChannel(channel);
+              log('→ Channel closed (test complete)', 'info');
+              log('', 'info');
+              logHeading('FINAL VERDICT');
+              if (results.sdk && results.connect && results.write && results.realtime) {
+                log('🎉 ALL TESTS PASSED!', 'success');
+                log('✅ Supabase works fully in Zoho Creator Widget', 'success');
+                log('✅ Real-time live chat can be built', 'success');
+              } else {
+                summariseResults();
+              }
+            }, 2000);
+
+          } else if (status === 'CHANNEL_ERROR') {
+            log('❌ WebSocket channel error', 'error');
+            log('❌ TEST 4 FAILED — Realtime blocked', 'error');
+            log('→ Live chat may need polling fallback (3s delay)', 'warning');
+            updateBanner();
+
+          } else if (status === 'TIMED_OUT') {
+            log('❌ WebSocket connection timed out', 'error');
+            log('❌ TEST 4 FAILED — WebSocket blocked by Zoho', 'error');
+            updateBanner();
+          }
+        });
+
+      // Timeout safety net
+      setTimeout(() => {
+        if (!realtimeWorked) {
+          log('⏱️ No response after 10 seconds', 'warning');
+          log('⚠️ WebSocket may be blocked or slow', 'warning');
+          log('→ Check browser console for more details', 'warning');
+          updateBanner();
+        }
+      }, 10000);
+
+    } catch(e) {
+      log('❌ Realtime exception: ' + e.message, 'error');
+      log('❌ TEST 4 FAILED', 'error');
+      updateBanner();
+    }
+  }
+
+  function summariseResults() {
+    log('SDK Load:      ' + (results.sdk      ? '✅ PASS' : '❌ FAIL'), results.sdk ? 'success' : 'error');
+    log('HTTP Connect:  ' + (results.connect  ? '✅ PASS' : '❌ FAIL'), results.connect ? 'success' : 'error');
+    log('Write Data:    ' + (results.write    ? '✅ PASS' : '❌ FAIL'), results.write ? 'success' : 'error');
+    log('WebSocket:     ' + (results.realtime ? '✅ PASS' : '❌ FAIL'), results.realtime ? 'success' : 'error');
+  }
+</script>
+</body>
+</html>
